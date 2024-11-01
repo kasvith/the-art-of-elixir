@@ -1,4 +1,4 @@
-<!-- livebook:{"file_entries":[{"name":"tcp-headers-f2c0881ea4c94e919794b7c0677ab90a.jpg","type":"attachment"}]} -->
+<!-- livebook:{"file_entries":[{"name":"tcp-headers.jpg","type":"attachment"}]} -->
 
 # Pattern Matching
 
@@ -13,7 +13,7 @@ x = 1
 in Elixir we can do something like this
 
 ```elixir
-1 = x # 1 and x are equal? 
+1 = x # 1 and x are equal?
 ```
 
 It may look weird, because in JS you cant do this as `=` means only assignment to LHS
@@ -149,7 +149,7 @@ IO.inspect([year, month, day])
 
 It means you can match a binary data packet coming through a wire and extract data 🤯
 
-![](files/tcp-headers-f2c0881ea4c94e919794b7c0677ab90a.jpg)
+![](files/tcp-headers.jpg)
 
 8 bits = 1 byte
 
