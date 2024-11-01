@@ -1,0 +1,142 @@
+# Loops
+
+## Recursion
+
+Following loop can be written with recursion
+
+```javascript
+// JavaScript loop
+let sum = 0;
+for (let i = 1; i <= 5; i++) {
+    sum += i * i;
+}
+console.log(sum);  // Output: 55
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+with recursion
+
+```elixir
+# Elixir recursion
+defmodule Math do
+  def sum_squares(0), do: 0
+  def sum_squares(n) when n > 0 do
+    (n * n) + sum_squares(n - 1)   # Has to wait for recursive call to return before adding
+  end
+end
+```
+
+```elixir
+Math.sum_squares(5)
+```
+
+But as you can see above recursive function can take lot of memory because it has to call
+same function again and wait for base case to return a result
+
+StackTrace:
+`(5*5) + ((4*4) + ((3*3) + ((2*2) + (1*1)))`
+
+<!-- livebook:{"break_markdown":true} -->
+
+#### Tail Recursion
+
+Tail recursion is a powerful technique, when compiler sees tail recursion in place it can internally
+optimize the recursive call into a for loop like JS
+
+```elixir
+# Tail recursive version (with accumulator)
+defmodule MathTail do
+  def sum_squares(n), do: do_sum(n, 0)
+  
+  defp do_sum(0, acc), do: acc
+  defp do_sum(n, acc) when n > 0 do
+    do_sum(n - 1, acc + (n * n))   # Accumulator handles the addition, last thing is recursive call
+  end
+end
+```
+
+```elixir
+MathTail.sum_squares(5)
+```
+
+StackTrace: `do_sum(5, 0) -> do_sum(4, 25) -> do_sum(3, 41) -> do_sum(2, 50) -> do_sum(1, 54) -> do_sum(0, 55)`
+
+When compiler see this pattern, it knows how to optimize it 🤩
+
+<!-- livebook:{"break_markdown":true} -->
+
+For tail recursive version we have an `acc`, `accumulator` which holds the value for each
+recursive call
+
+on each call we keep value in `acc` and do the next call using the **same function**
+
+if we look at previous example its `(n * n) + sum_squares(n - 1)` which adds a new function call
+to the stack
+
+in tail recursion, we just call same function...by passing the calculated value from `acc`
+
+## Enum
+
+Enum module also have lot of tools to do loop like operations
+
+```elixir
+Enum.each(0..4, fn i -> 
+  IO.puts(i)
+end)
+```
+
+`Enum.reduce/3` is the base of `Enum` module, you can create anything with `reduce`
+
+This is similar to `arr.reduce()` function in JS
+
+```elixir
+Enum.reduce(1..5, 0, fn i, acc -> 
+  acc + i * i
+end)
+```
+
+## Comprehensions
+
+In elixir we have `comprehensions` for looping easily
+
+```elixir
+for n <- [1, 2, 3, 4], do: n * n
+```
+
+With pattern matching
+
+```elixir
+values = [good: 1, good: 2, bad: 3, good: 4]
+
+# with pattern match
+for {:good, n} <- values, do: n * n
+```
+
+With a filter we can discard everything else if it doesnt match
+
+```elixir
+for n <- 0..5, rem(n, 3) == 0, do: n * n
+```
+
+We can have multiple generators as well
+
+```elixir
+for i <- [:a, :b, :c], j <- [1, 2], do:  {i, j}
+```
+
+We can do same with `Enum`, `Stream` but comprehensions are much more nicer to look at
+
+```elixir
+cities = [
+  %{name: "Portland", areas: ["Pearl", "Downtown", "Southeast"]},
+  %{name: "Seattle", areas: ["Capitol Hill", "Ballard"]}
+]
+
+for city <- cities,
+    area <- city.areas,
+    location = "#{city.name}/#{area}",
+    String.contains?(area, "down") || String.contains?(area, "Down") do
+  location
+end
+```
