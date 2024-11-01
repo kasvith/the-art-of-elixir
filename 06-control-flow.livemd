@@ -1,0 +1,396 @@
+# Control Flow
+
+## if and unless
+
+Its similar to JS
+
+```elixir
+defmodule Temperature do
+  def check_temp(temp) do
+    if temp >= 30 do
+      "It's hot!"
+    else
+      "It's not too hot."
+    end
+  end
+
+  def check_freezing(temp) do
+    unless temp > 0 do
+      "It's freezing!"
+    else
+      "It's not freezing."
+    end
+  end
+end
+```
+
+```elixir
+Temperature.check_freezing(35)
+```
+
+```elixir
+Temperature.check_temp(35)
+```
+
+In elixir everything returns a value, so we can assign the output from `if`/`unless` like this
+
+```elixir
+character = "Yoda"
+
+allegiance =
+  if character in ["Yoda", "Luke", "Obi-Wan", "Rey"] do
+    :jedi
+  else
+    if character in ["Vader", "Palpatine", "Maul", "Dooku"] do
+      :sith
+    else
+      :unknown
+    end
+  end
+
+IO.puts "#{character} is a #{allegiance}."    
+```
+
+## case
+
+This is similar to a switch statement in other langs.
+
+In JS it looks like this
+
+```javascript
+const character = "Legolas";
+let race;
+
+switch (character) {
+  case "Aragorn":
+  case "Boromir":
+    race = "Human";
+    break;
+  case "Legolas":
+    race = "Elf";
+    break;
+  case "Gimli":
+    race = "Dwarf";
+    break;
+  case "Frodo":
+  case "Sam":
+  case "Merry":
+  case "Pippin":
+    race = "Hobbit";
+    break;
+  case "Gandalf":
+    race = "Wizard";
+    break;
+  default:
+    race = "Unknown";
+}
+
+console.log(`${character} is a ${race}.`);
+// Outputs: Legolas is an Elf.
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+In elixir
+
+```elixir
+disaster_level_classifier = fn threat ->
+  case threat do
+    # Threat with minimal power and low destructiveness is a Wolf-level threat
+    %{power: power, destructiveness: destructiveness} when power < 3 and destructiveness < 3 ->
+      :wolf
+
+    # Threat with moderate power or moderate destructiveness is a Tiger-level threat
+    %{power: power, destructiveness: destructiveness}
+    when (power >= 3 and power < 5) or (destructiveness >= 3 and destructiveness < 5) ->
+      :tiger
+
+    # Threat with high power and high destructiveness is a Demon-level threat
+    %{power: power, destructiveness: destructiveness}
+    when power >= 5 and destructiveness >= 5 and destructiveness < 8 ->
+      :demon
+
+    # Threat with very high power or destructiveness is a Dragon-level threat
+    %{power: power, destructiveness: destructiveness} when power >= 8 or destructiveness >= 8 ->
+      :dragon
+
+    # A global catastrophe threat level with 
+    # extreme power and destructiveness is classified as God-level
+    %{power: power, destructiveness: destructiveness} when power >= 10 and destructiveness >= 10 ->
+      :god
+
+    # Fallback for unknown threats
+    _ ->
+      :unknown_threat
+  end
+end
+```
+
+```elixir
+IO.puts(disaster_level_classifier.(%{power: 2, destructiveness: 2}))        # Outputs: :wolf
+IO.puts(disaster_level_classifier.(%{power: 4, destructiveness: 3}))        # Outputs: :tiger
+IO.puts(disaster_level_classifier.(%{power: 6, destructiveness: 6}))        # Outputs: :demon
+IO.puts(disaster_level_classifier.(%{power: 9, destructiveness: 8}))        # Outputs: :dragon
+IO.puts(disaster_level_classifier.(%{power: 10, destructiveness: 10}))      # Outputs: :god
+IO.puts(disaster_level_classifier.(%{power: 1, destructiveness: 10}))       # Outputs: :dragon
+IO.puts(disaster_level_classifier.(%{unknown_key: :unknown_value}))         # Outputs: :unknown_threat
+```
+
+## cond
+
+`cond` is kind of similar to `if/else-if/else` statement. the difference between `cond` and `case` is in `cond` you can evaluate functions
+
+```elixir
+defmodule WeatherAdvisor do
+  def suggest_activity(weather, temperature) do
+    cond do
+      sunny?(weather) and temperature > 20 -> "It's a perfect day for a walk!"
+      sunny?(weather) and temperature <= 20 -> "It's sunny but chilly. Bundle up for a walk!"
+      rainy?(weather) -> "Take an umbrella!"
+      snowy?(weather) and temperature <= 0 -> "It's freezing! Build a snowman!"
+      true -> "Stay indoors and relax!"
+    end
+  end
+
+  defp sunny?(weather), do: weather == :sunny
+  defp rainy?(weather), do: weather == :rainy
+  defp snowy?(weather), do: weather == :snowy
+end
+```
+
+```elixir
+IO.puts WeatherAdvisor.suggest_activity(:sunny, 25)    
+IO.puts WeatherAdvisor.suggest_activity(:sunny, 15)    
+IO.puts WeatherAdvisor.suggest_activity(:rainy, 10)    
+IO.puts WeatherAdvisor.suggest_activity(:snowy, -5)    
+IO.puts WeatherAdvisor.suggest_activity(:cloudy, 15)   
+```
+
+Use of `cond` is bit rare btw
+
+## with
+
+`with` is like a way to write the happy path without worrying too much about others.
+
+It is kind of similar to early returns you see in other languages like javascript
+
+Lets look at this `Javascript` example
+
+```javascript
+function canAccessContent(user) {
+  if (!user) {
+    return "User not found";
+  }
+  
+  if (!user.isLoggedIn) {
+    return "User not logged in";
+  }
+  
+  if (user.age < 18) {
+    return "User is too young";
+  }
+  
+  if (!user.isSubscribed) {
+    return "User does not have a subscription";
+  }
+  
+  return "Access granted";
+}
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+We can write the same with elixir as follows
+
+```elixir
+defmodule AccessControl do
+  def can_access_content(user) do
+    with {:ok, user} <- validate_user(user),
+         {:ok, _} <- check_login(user),
+         {:ok, _} <- check_age(user),
+         {:ok, _} <- check_subscription(user) do
+      "Access granted"
+    else
+      {:error, reason} -> reason
+    end
+  end
+
+  defp validate_user(nil), do: {:error, "User not found"}
+  defp validate_user(user), do: {:ok, user}
+
+  defp check_login(%{is_logged_in: false}), do: {:error, "User not logged in"}
+  defp check_login(%{is_logged_in: true}), do: {:ok, :logged_in}
+
+  defp check_age(%{age: age}) when age < 18, do: {:error, "User is too young"}
+  defp check_age(%{age: _}), do: {:ok, :age_valid}
+
+  defp check_subscription(%{is_subscribed: false}),
+    do: {:error, "User does not have a subscription"}
+
+  defp check_subscription(%{is_subscribed: true}), do: {:ok, :subscribed}
+end
+```
+
+```elixir
+IO.puts(AccessControl.can_access_content(nil))
+IO.puts(AccessControl.can_access_content(%{is_logged_in: false}))
+IO.puts(AccessControl.can_access_content(%{is_logged_in: true, age: 16}))
+IO.puts(AccessControl.can_access_content(%{is_logged_in: true, age: 20, is_subscribed: false}))
+IO.puts(AccessControl.can_access_content(%{is_logged_in: true, age: 20, is_subscribed: true}))
+```
+
+So as you can see we break it down to smaller functions, instead of having everything at one place.
+
+This allows us to clearly see whats going on by just looking at the business logic defined in `can_access_content/1`
+
+## A real world example
+
+This is a JS function which process some transaction data and store them, written with `TypeScript`
+
+```javascript
+  async handleTransactionsTask(webhookResponse): Promise<any> {
+    this.logger.log(
+      'Truelayer service transaction webhook response : %o',
+      webhookResponse,
+    );
+    const { results_uri: transactionsDataUri, task_id: taskId } =
+      webhookResponse;
+    const taskResponse = await TruelayerTask.query()
+      .where('taskId', taskId)
+      .patch({
+        status: webhookResponse.status,
+      })
+      .returning('*');
+
+    const userId = taskResponse[0].userId;
+    const credentialId = taskResponse[0].credentialId;
+
+    const credentialData = await ObBankCredential.query()
+      .where('id', credentialId)
+      .select('accessToken')
+      .first();
+    const accessToken = credentialData.accessToken;
+
+    const getTransactionsData = await this.truelayerClient.getDataFromUri(
+      accessToken,
+      transactionsDataUri,
+    );
+
+    if (getTransactionsData.results) {
+      for (const transaction of getTransactionsData.results) {
+        if (transaction.transaction_type == 'DEBIT') {
+          const trxAmount = transaction.amount * 100;
+          const amount = Math.floor(trxAmount);
+          const transactionDataPayload: TruelayerTransactionType = {
+            userId: userId,
+            amount: amount,
+            currencyCode: transaction.currency,
+            merchantName: transaction.merchant_name,
+            type: transaction.transaction_type,
+            category: transaction.transaction_category,
+            provider: Provider.TRUELAYER,
+            providerTrxId: transaction.provider_transaction_id,
+            description: transaction.description,
+            status: TransactionStatus.Pending,
+            trxTimestamp: new Date(transaction.timestamp),
+          };
+
+          this.logger.log(
+            'Truelayer service transaction data payload : %o',
+            transactionDataPayload,
+          );
+
+          await this.saveTruelayerTransactions(transactionDataPayload);
+        }
+      }
+    }
+
+    return;
+  }
+```
+
+And same logic with elixir looks like follows
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+defmodule TransactionHandler do
+  def handle_transactions_task(webhook_response) do
+    log_webhook_response(webhook_response)
+
+    with {:ok, task_response} <- update_task_status(webhook_response),
+         {:ok, user_id} <- fetch_user_id(task_response),
+         {:ok, credential_id} <- fetch_credential_id(task_response),
+         {:ok, access_token} <- fetch_access_token(credential_id),
+         {:ok, transactions_data} <- fetch_transactions_data(access_token, webhook_response.results_uri),
+         {:ok, _} <- process_transactions(transactions_data, user_id) do
+      :ok
+    else
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp log_webhook_response(webhook_response) do
+    Logger.info("Truelayer service transaction webhook response: #{inspect(webhook_response)}")
+  end
+
+  defp update_task_status(%{task_id: task_id, status: status}) do
+    # Outline of updating the task status in the database
+    {:ok, task_response} = :stubbed_query
+    {:ok, task_response}
+  end
+
+  defp fetch_user_id(task_response) do
+    # Extract user_id from task response
+    user_id = :stubbed_user_id
+    {:ok, user_id}
+  end
+
+  defp fetch_credential_id(task_response) do
+    # Extract credential_id from task response
+    credential_id = :stubbed_credential_id
+    {:ok, credential_id}
+  end
+
+  defp fetch_access_token(credential_id) do
+    # Query to get access token by credential_id
+    access_token = :stubbed_access_token
+    {:ok, access_token}
+  end
+
+  defp fetch_transactions_data(access_token, transactions_data_uri) do
+    # Fetch transaction data from TrueLayer using access token and data URI
+    transactions_data = :stubbed_transactions_data
+    {:ok, transactions_data}
+  end
+
+  defp process_transactions(transactions_data, user_id) do
+    transactions = extract_transactions(transactions_data)
+
+    Enum.each(transactions, fn transaction ->
+      if transaction[:transaction_type] == :debit do
+        transaction_data_payload = build_transaction_payload(transaction, user_id)
+        Logger.info("Truelayer service transaction data payload: #{inspect(transaction_data_payload)}")
+        save_transaction(transaction_data_payload)
+      end
+    end)
+
+    {:ok, :transactions_processed}
+  end
+
+  defp extract_transactions(transactions_data) do
+    # Extract and return transactions from the transactions data
+    :stubbed_transactions
+  end
+
+  defp build_transaction_payload(transaction, user_id) do
+    # Build and return the transaction data payload
+    :stubbed_transaction_payload
+  end
+
+  defp save_transaction(transaction_data_payload) do
+    # Save the transaction data payload
+    :ok
+  end
+end
+```

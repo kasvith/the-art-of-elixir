@@ -256,6 +256,31 @@ Also compared to a `if` statement, when you have patterns in the function header
 
 <!-- livebook:{"break_markdown":true} -->
 
+#### Private functions
+
+We can define private functions with `defp`.
+
+In elixir its common to have lot of small private functions
+
+```elixir
+defmodule Greeter do
+  # Public function that uses a private helper function
+  def greet(name) do
+    message = format_greeting(name)
+    "Greeting message: #{message}"
+  end
+
+  # Private function to format the greeting
+  defp format_greeting(name) do
+    "Hello, #{name}!"
+  end
+end
+```
+
+```elixir
+Greeter.greet("Kasun")
+```
+
 ### Default Parameters
 
 <!-- livebook:{"break_markdown":true} -->
