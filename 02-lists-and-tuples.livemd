@@ -2,6 +2,12 @@
 
 # Lists and Tuples
 
+```elixir
+Mix.install([
+  {:kino, "~> 0.14.0"}
+])
+```
+
 ## Lists
 
 We create lists with `[]`
@@ -121,7 +127,9 @@ Often we use this with functions to return multiple values
 For example lets try to read a `File`
 
 ```elixir
-File.read("/Users/kasun/work/livebooks/the-art-of-elixir/files/random_names.csv")
+content =
+  Kino.FS.file_path("random_names.csv")
+  |> File.read()
 ```
 
 Here you can see it has returned a tuple with `{:ok, "content"}` format

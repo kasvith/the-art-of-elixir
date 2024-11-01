@@ -1,0 +1,200 @@
+# Maps and Keyword Lists
+
+## Maps
+
+We can define maps with following syntax
+
+```elixir
+%{ "key1" => "value1", key2: :value2, key3: [] }
+```
+
+#### Accessing elements in a map
+
+<!-- livebook:{"break_markdown":true} -->
+
+Lets define a map first to store `user` data
+
+```elixir
+user = %{
+  :name => "Kasun",
+  "company" => "WaveZync 🌊",
+  :hobbies => ["Watching Anime", "Workouts", "Movies"]
+}
+```
+
+Lets access elements
+
+<!-- livebook:{"break_markdown":true} -->
+
+If the key is an `atom` we can access it with dot syntax
+
+```elixir
+user.name
+```
+
+```elixir
+user.hobbies
+```
+
+If not it will give an error
+
+```elixir
+user.company
+```
+
+To access keys which are not `atom`s we can use following syntax
+
+```elixir
+user["company"]
+```
+
+It can be any key so even this is valid too
+
+```elixir
+user_data = %{ 1 => "hello", 2 => :bello, :minion => "Kevin" }
+```
+
+```elixir
+user_data[1]
+```
+
+```elixir
+user_data[2]
+```
+
+```elixir
+user_data[:minion]
+```
+
+### Updating a map
+
+```elixir
+user = %{
+  :name => "Kasun",
+  "company" => "WaveZync 🌊",
+  :hobbies => ["Watching Anime", "Workouts", "Movies"]
+}
+```
+
+If the key is pre-defined, we can update it with following syntax
+
+```elixir
+%{ user | "company" => "Its still WaveZync 😒" }
+```
+
+if the Key is not there, it will scream 🙀
+
+```elixir
+%{ user | :nickname => "kasvith" }
+```
+
+There are macros provided by the Elixir to work with maps like `put_in/2`, `update_in/2`
+
+Lets update the user to add few more hobbies
+
+```elixir
+user = update_in user.hobbies, fn hobbies -> ["Music" | hobbies] end
+```
+
+Lets change the name also
+
+```elixir
+user = put_in user.name, "Kasun Vithanage"
+```
+
+There are lot of other ways to interact with maps, you can find them in [docs](https://hexdocs.pm/elixir/1.17.3/keywords-and-maps.html#maps-as-key-value-pairs)
+
+<!-- livebook:{"break_markdown":true} -->
+
+There is also `Map` module which contains lot of useful methods
+
+Lets see how we can use it to get a value from a map and fallback to a default value if key is not present
+
+```elixir
+Map.get(user, :name)
+```
+
+```elixir
+Map.get(user, :age) # see this doesnt scream
+```
+
+```elixir
+Map.get(user, :age, 29)
+```
+
+## Keyword Lists
+
+We can create a keyword list simply by using atoms a keys
+
+```elixir
+spell = [
+  name: "Arcane Blast",
+  power_level: 9000,
+  cast_time: 3.5,
+  cooldown: 10,
+  elements: [:fire, :lightning],
+  mana_cost: 50,
+  effects: [
+    damage: 150,
+    burn: 30,
+    stun: 2
+  ],
+  description: "Unleash a powerful arcane blast that sears enemies with fire and lightning."
+]
+```
+
+We can actually define it like follows as well
+
+Once evaluated you will see it will be similar to above output
+
+```elixir
+[{:hello, "world"}, {:bye, "world"}]
+```
+
+A practical usage can be find in `String.split/2` function where we need to pass additional arguments to the function
+
+> This is similar to `kwargs` in python for example
+
+```elixir
+String.split("1 2      3", " ")
+```
+
+With trimming
+
+```elixir
+String.split("1 2        3", " ", [trim: true])
+```
+
+We can write it as follows also without the brackets
+
+```elixir
+String.split("1 2        3", " ", trim: true)
+```
+
+This is really useful when building queries with `Ecto`
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+query =
+  from u in User,
+    where: u.age > 18,
+    where: u.age < 40,
+    select: u
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Keyword List manipulation
+
+<!-- livebook:{"break_markdown":true} -->
+
+Same as `Map` you can use `Keyword` module to deal with Keyword Lists
+
+```elixir
+Keyword.get(spell, :name)
+```
+
+```elixir
+Keyword.get(spell, :wizard)
+```
