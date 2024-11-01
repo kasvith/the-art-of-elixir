@@ -1,0 +1,145 @@
+<!-- livebook:{"file_entries":[{"name":"worksheet.csv","type":"attachment"}]} -->
+
+# Pipes
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.14.0"}
+])
+```
+
+## Pipes makes your life joyful 😃
+
+Without pipe we can end up with defining lot of intermidiate variables just to avoid nested
+function calls
+
+Since in elixir this is pretty common we have something better
+
+```elixir
+defmodule Example do
+  def process_numbers(numbers, threshold) do
+    squared = Enum.map(numbers, fn x -> x * x end)
+    filtered = Enum.filter(squared, fn x -> x <= threshold end)
+    Enum.sum(filtered)
+  end
+end
+
+Example.process_numbers([1, 2, 3, 4, 5], 10)
+```
+
+`|>` is a pipe
+
+It takes an expression from left side and pass it as the first argument to the next function on right side.
+
+Almost like a pipe which allows you to transport data between functions 🙌
+
+```elixir
+defmodule BetterExample do
+  def process_numbers(numbers, threshold) do
+    numbers
+    |> Enum.map(&(&1 * &1))
+    |> Enum.filter(&(&1 <= threshold))
+    |> Enum.sum()
+  end
+end
+
+BetterExample.process_numbers([1, 2, 3, 4, 5], 10)
+```
+
+## Using with Enum and Streams
+
+#### Enums
+
+`Enum` is a special module you will run into every day, it contains lot of functions
+to manipulate data
+
+```elixir
+odd? = fn x -> rem(x, 2) != 0 end
+```
+
+```elixir
+1..100_000 |> Enum.map(&(&1 * 3)) |> Enum.filter(odd?) |> Enum.sum()
+```
+
+#### Streams
+
+<!-- livebook:{"break_markdown":true} -->
+
+`Stream` is also like `Enum` but allows you to lazy evaluate stuff.
+
+In above example at each output we generated a sequence like a list, but its not really needed if we lazy evaluate it at the sum step
+
+`Stream` allows you to do that
+
+```elixir
+1..100_000 |> Stream.map(&(&1 * 3)) |> Stream.filter(odd?) |> Enum.sum()
+```
+
+`Stream` is like a lazy `Enum`
+
+This is very useful when you are reading a large file and processing data
+
+## Streams in action with Pipe
+
+Now we got a new project which has to process thousands of CSV files and calculate OT hours for
+each employee
+
+our `worksheet.csv` looks like this (more than 10K records)
+
+```csv
+employee_id,employee_name,hours_worked
+1,John Doe,25
+1,John Doe,20
+2,Jane Smith,38
+3,Bob Johnson,30
+3,Bob Johnson,25
+4,Alice Brown,42
+```
+
+```elixir
+file_path =
+  Kino.FS.file_path("worksheet.csv")
+```
+
+```elixir
+defmodule OvertimeCalculator do
+  @ot_threshold 40
+
+  def calculate_ot(input_path) do
+    input_path
+    |> File.stream!()
+    |> Stream.drop(1)  # Skip header row
+    |> Stream.map(&parse_line/1)
+    |> Enum.group_by(& &1.employee_id)  # Group shifts by employee ID
+    |> Enum.map(&calculate_total_hours_and_ot/1) # Here it starts to work
+  end
+
+  defp parse_line(line) do
+    [employee_id, employee_name, hours_worked_str] = String.split(line, ",")
+    hours_worked = String.to_integer(String.trim(hours_worked_str))
+
+    %{
+      employee_id: employee_id,
+      employee_name: employee_name,
+      hours_worked: hours_worked
+    }
+  end
+
+  defp calculate_total_hours_and_ot({employee_id, shifts}) do
+    total_hours = Enum.reduce(shifts, 0, fn shift, acc -> acc + shift.hours_worked end)
+    ot_hours = max(total_hours - @ot_threshold, 0)
+
+    %{
+      employee_id: employee_id,
+      employee_name: shifts |> List.first() |> Map.get(:employee_name),
+      total_hours: total_hours,
+      ot_hours: ot_hours
+    }
+  end
+end
+
+```
+
+```elixir
+file_path |> OvertimeCalculator.calculate_ot()
+```
