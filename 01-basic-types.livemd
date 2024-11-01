@@ -35,3 +35,151 @@ Atoms are like `Symbols` in JS(similar to consts). In elixir atoms are used heav
 ```elixir
 :error
 ```
+
+There are several special atoms we use for `boolean`s and `null`s 👇
+
+## Null values
+
+```elixir
+nil # this is NULL in JS
+```
+
+### Booleans
+
+```elixir
+true # true
+```
+
+```elixir
+false # false
+```
+
+To compare values we can use `==`
+
+```elixir
+true == false
+```
+
+and we can also use `or/2`, `and/2`, `not/1`
+
+```elixir
+true and false
+```
+
+```elixir
+true or false
+```
+
+```elixir
+not true
+```
+
+We can also use `||/2`, `&&/2`, `!/1` to evaluate expressions.
+
+These operators will consider any `false` or `nil` values as falsy, everything else will be just truthy
+
+> 💡 In some languages like JS `0` and `""` considered as `NULL` but in Elixir there are no assumptions made
+
+These are short circuit operators(similar to JS)
+
+```elixir
+120 || false # second value never checked as first one is truthy
+```
+
+```elixir
+10 && true # because 10 is truthy it returns second value
+```
+
+```elixir
+nil && true # returns nil because first value is falsy
+```
+
+```elixir
+!nil # you know this
+```
+
+## Strings
+
+Double quotes are "strings"
+
+```elixir
+"WaveZync 🌊"
+```
+
+String concatenate can be done using `<>` operator
+
+```elixir
+"WaveZync 🌊 " <> "❤️" <> " Elixir"
+```
+
+String interpolation can be done as well.
+
+this is similar to following in JS
+
+```javascript
+const orderId = 105;
+const notification = `Order ${orderId} delivered 💪`
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+in elixir
+
+```elixir
+order_id = 105
+notification = "Order #{order_id} delivered 💪"
+```
+
+## Comparision
+
+Elixir supports `==`, `!=`, `<=`, `>=`, `<` and `>`
+
+```elixir
+"apples" != :apples
+```
+
+```elixir
+100 >= 10
+```
+
+These comparisions are structural
+
+in simple terms they compare underlying data structure(in a string its bytes)
+
+```elixir
+"kasun" > "wavezync"
+```
+
+## Term Ordering
+
+This is how elixir gives precedence to comparision by data types
+
+`number < atom < reference < function < port < pid < tuple < map < list < bitstring`
+
+## Variables
+
+We use `snake_case` for variables
+
+```elixir
+order_id = 105
+username = "kasun"
+transaction_id = "11"
+next_step = :rating
+food_item = "Pizza 🍕"
+```
+
+We can inspect any variable with `IO.inspect`
+
+```elixir
+IO.inspect([order_id, username, transaction_id, food_item, next_step])
+```
+
+`IO.inspect` is a powerful tool
+
+<!-- livebook:{"break_markdown":true} -->
+
+If variable is unused we can use `_` to ignore
+
+```elixir
+_ordered_at = Date.utc_today()
+```
