@@ -1,0 +1,210 @@
+# Processes
+
+## Lets create a simple process
+
+We can create a process with `spawn`
+
+```elixir
+spawn(fn -> 1 + 2 end)
+```
+
+As you can see, it retuened a value with `PID`
+
+this is commonly called a `pid` - `process id`
+it can be used to identify the process inside same machine and if connected, between different machines(nodes) as well
+
+```elixir
+pid = spawn(fn -> 1 + 2 end)
+```
+
+We can check process is alive with `Process.alive?/1`
+
+```elixir
+Process.alive?(pid)
+```
+
+## Current Process
+
+Since everything in elixir runs inside a process, what about now?
+
+Yeah, you can get current process with `self/0`
+
+```elixir
+self()
+```
+
+```elixir
+Process.alive?(self())
+```
+
+## Hello Houston?
+
+Lets send a message to a process
+
+```elixir
+send(self(), {:hello, "world"})
+```
+
+Now when we send this, it goes into the **mailbox 📪** of process
+
+Once we have a `receive` block, it can go through this mailbox and process messages with pattern matching
+
+```elixir
+receive do
+  {:hello, msg} -> msg
+  {:world, _msg} -> "won't match"
+end
+```
+
+Earlier we sent message to `self`
+
+We can send messages between processes
+
+```elixir
+parent = self()
+```
+
+```elixir
+spawn(fn -> send(parent, {:hello, self()}) end)
+```
+
+```elixir
+receive do
+  {:hello, pid} -> "Got hello from #{inspect pid}"
+end
+```
+
+Now we can see, the parent got a message from a child
+
+<!-- livebook:{"break_markdown":true} -->
+
+> If there are no messages, `receive` will wait until a message arrives at mailbox 📪
+
+## Linking Processes
+
+Most of the time in Elixir, we are linking processes with each other.
+
+This way we can monitor state of child processes and take necessary actions when they fail
+
+```elixir
+spawn(fn -> raise "oops" end)
+```
+
+Lets monitor this process on parent
+
+We can use `spawn_link/1` to create a linked process with parent
+
+if child process dies, the parent dies too
+
+```elixir
+fun = fn ->
+  pid = spawn(fn ->
+    IO.inspect("Parent is alive! Starting database query...")
+    spawn_link(fn -> 
+      IO.inspect("👶 Child attempting DB connection... #{inspect(self())}")
+      raise "DB Connection Failed!"
+    end)
+    :timer.sleep(1)
+    IO.inspect("Parent won't reach this - crashed with child")
+  end)
+  IO.inspect("Started DB worker at #{inspect(pid)}")
+  :timer.sleep(1)
+  IO.inspect("Main process still running 🚀")
+end
+```
+
+```elixir
+fun.()
+```
+
+Instead of directly using `spawn`, `spawn_link` we can use `Task` module for better error handling and monitioring
+
+```elixir
+Task.start(fn -> raise "oops" end)
+```
+
+## Building a simple KV Store
+
+With processes and message passing we can actually hold a state
+
+```elixir
+defmodule KV do
+  def start_link do
+    Task.start_link(fn -> loop(%{}) end)
+  end
+
+  defp loop(map) do
+    receive do
+      {:get, key, caller} ->
+        send(caller, Map.get(map, key)) # send the item to caller
+        loop(map) # loop again with same state
+      {:put, key, value} ->
+        loop(Map.put(map, key, value)) # update the state and loop again
+    end
+  end
+end
+```
+
+```elixir
+{:ok, pid} = KV.start_link()
+```
+
+```elixir
+send(pid, {:get, :hello, self()})
+```
+
+Lets get the message on parent
+
+```elixir
+receive do
+  msg -> IO.inspect(msg)
+end
+```
+
+Lets add something to the KV store
+
+```elixir
+send(pid, {:put, :hello, :world})
+```
+
+and get it back
+
+```elixir
+send(pid, {:get, :hello, self()})
+```
+
+Now we listen for message
+
+```elixir
+receive do
+  msg -> IO.inspect(msg)
+end
+```
+
+## Agents
+
+Agents abstract above concept and gives you a nice and simple abstraction
+
+<!-- livebook:{"break_markdown":true} -->
+
+#### Start the agent
+
+```elixir
+{:ok, agent} = Agent.start_link(fn -> [] end)
+```
+
+#### Update a value inside the list
+
+```elixir
+Agent.update(agent, fn list -> ["eggs" | list] end)
+```
+
+#### Get it back
+
+```elixir
+Agent.get(agent, fn list -> list end)
+```
+
+Usage of `Agent` is bit uncommon in Elixir
+
+We have other commonly used tools like `GenServer`
