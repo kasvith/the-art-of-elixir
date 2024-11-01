@@ -1,0 +1,138 @@
+<!-- livebook:{"file_entries":[{"name":"random_names.csv","type":"attachment"}]} -->
+
+# Lists and Tuples
+
+## Lists
+
+We create lists with `[]`
+Actually we created a list in previous examples
+
+```elixir
+orders = [1, 70, 110]
+```
+
+We can store mixed values in a `List`
+
+```elixir
+my_school_bag = ["pens", 11, :rock, :pencil_box, "books", 55.7, true]
+```
+
+### List manipulation
+
+<!-- livebook:{"break_markdown":true} -->
+
+We are using `++` to concatenate lists.
+
+```elixir
+[:clay] ++ my_school_bag
+```
+
+We can use `--` to subsctract from a list
+
+```elixir
+my_school_bag -- [:rock]
+```
+
+The result is a **new** list, it never modifies the original
+
+In elixir Data Structures are `Immutable`, means we never modifies the original
+
+> Don't worry **BEAM VM**, Elixir's VM is smart enough to handle this in an efficient way
+
+```elixir
+# so it means my_school_bag is unchanged
+
+my_school_bag
+```
+
+#### Prepending
+
+```elixir
+[:water_bottle | my_school_bag]
+```
+
+#### Appending
+
+```elixir
+my_school_bag ++ [:water_bottle]
+```
+
+#### Immutability in action 💪
+
+```elixir
+my_school_bag = ["pens", 11, :rock, :pencil_box, "books", 55.7, true]
+extra_books = ["Sherlock Holmes", "Robin Hood"]
+
+bag = my_school_bag ++ extra_books
+```
+
+Original data is not modified
+
+```elixir
+my_school_bag
+```
+
+```elixir
+extra_books
+```
+
+We get a new list instead
+
+```elixir
+bag
+```
+
+There are special modules in Elixir to make your life easier
+
+`Enum` and `List` modules can help you manipulate lists
+
+```elixir
+Enum.at(bag, 3)
+```
+
+```elixir
+List.replace_at(bag, 1, "atlas pens")
+```
+
+If we check `bag` its still unchanged
+
+```elixir
+bag
+```
+
+So its immutable 🫢
+
+## Tuples
+
+Tuples are created using `{}`
+
+> Do NOT confuse this with a `object` in JS
+
+```elixir
+{"gandalf", "frodo", "sam", "tom bombadil", :sauron}
+```
+
+Often we use this with functions to return multiple values
+
+```elixir
+{:ok, "Here are some details you like"}
+```
+
+For example lets try to read a `File`
+
+```elixir
+File.read("/Users/kasun/work/livebooks/the-art-of-elixir/files/random_names.csv")
+```
+
+Here you can see it has returned a tuple with `{:ok, "content"}` format
+
+```elixir
+File.read("404.txt")
+```
+
+In here you can see we have `{:error, reason}` tuple
+
+<!-- livebook:{"break_markdown":true} -->
+
+There are functions like `put_elem`, `elem` also `Tuple` module for dealing with tuples...
+Most of the time you wont use them...but good to know 🤓
