@@ -1,0 +1,109 @@
+# Structs
+
+## Structs are just enhanced Maps
+
+Remember maps? the "go to" data structure
+
+`Struct` just allows you to define keys at compile time, it also allows to do certain validations
+making they are really powerful in lot of applications
+
+<!-- livebook:{"break_markdown":true} -->
+
+we can define a struct with `defstruct` macro
+
+```elixir
+defmodule GitHub.Repository do
+  @moduledoc """
+  Represents a GitHub repository with common attributes and operations.
+  """
+
+  @enforce_keys [:name, :owner] # this is a module attribute
+  defstruct [
+    :name,
+    :owner,
+    :description,
+    :url,
+    :private,
+    stars: 0,
+    forks: 0,
+    open_issues: 0,
+    created_at: nil,
+    updated_at: nil,
+    topics: []
+  ]
+
+  # this is typespec, a way to define types(not like typescript)
+  @type t :: %__MODULE__{
+          name: String.t(),
+          owner: String.t(),
+          description: String.t() | nil,
+          url: String.t() | nil,
+          private: boolean() | nil,
+          stars: non_neg_integer(),
+          forks: non_neg_integer(),
+          open_issues: non_neg_integer(),
+          created_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil,
+          topics: list(String.t())
+        }
+
+  @doc """
+  Creates a new repository struct with the given attributes.
+  """
+  def new(name, owner, description \\ nil) do
+    %__MODULE__{
+      name: name,
+      owner: owner,
+      description: description,
+      private: false,
+      url: "https://github.com/#{owner}/#{name}"
+    }
+  end
+
+  @doc """
+  Adds topics to a repository.
+  """
+  def add_topics(repo, new_topics) when is_list(new_topics) do
+    %{repo | topics: Enum.uniq(repo.topics ++ new_topics)}
+  end
+
+  @doc """
+  Updates the star count and returns the updated repository.
+  """
+  def update_stars(repo, count) when is_integer(count) and count >= 0 do
+    %{repo | stars: count, updated_at: DateTime.utc_now()}
+  end
+
+  @doc """
+  Returns true if the repository is popular (has more than 1000 stars).
+  """
+  def popular?(repo) do
+    repo.stars >= 1000
+  end
+end
+```
+
+Usage is like here
+
+```elixir
+repo =
+  GitHub.Repository.new(
+    "phoenix",
+    "phoenixframework",
+    "Peace of mind from prototype to production"
+  )
+  |> GitHub.Repository.add_topics(["elixir", "web", "framework"])
+  |> GitHub.Repository.update_stars(19000)
+```
+
+```elixir
+is_popular = GitHub.Repository.popular?(repo)
+```
+
+If we try to skip enforced keys
+
+```elixir
+%GitHub.Repository{name: "my-repo"}
+```
+
+we get an error
