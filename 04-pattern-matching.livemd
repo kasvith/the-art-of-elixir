@@ -1,0 +1,172 @@
+<!-- livebook:{"file_entries":[{"name":"tcp-headers-f2c0881ea4c94e919794b7c0677ab90a.jpg","type":"attachment"}]} -->
+
+# Pattern Matching
+
+## Match Operator
+
+We have already used match operator, its `=`
+
+```elixir
+x = 1
+```
+
+in Elixir we can do something like this
+
+```elixir
+1 = x # 1 and x are equal? 
+```
+
+It may look weird, because in JS you cant do this as `=` means only assignment to LHS
+
+So appearently in ELixir this is different
+
+Lets try to match it to another value
+
+```elixir
+2 = x
+```
+
+Oh now it throws an error
+
+```elixir
+2 = y
+```
+
+it seems that when you want to define a variable it should be assigned from LHS to RHS like JS
+but once assigned we call it as both holds an equality
+
+So `y = 10` means `y` will hold the value called `10`
+
+## Matching complex types
+
+So its not just primitive values, you can match to anything
+
+```elixir
+{name, age, hobbies} = {:kasun, 29, ["Anime", "Movies", "Workout"]}
+```
+
+```elixir
+name
+```
+
+```elixir
+age
+```
+
+```elixir
+hobbies
+```
+
+Lets try to match something which doesnt really make sense, a list and tuple
+
+```elixir
+[a, b, c] = {:a, :b}
+```
+
+So it fails as expected
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Lists
+
+```elixir
+[a, b, c] = [1, 2, 3]
+```
+
+```elixir
+a
+```
+
+```elixir
+b
+```
+
+```elixir
+c
+```
+
+Now we have a match for LHS and RHS and even we can access items inside a list
+
+How cool 😎
+
+<!-- livebook:{"break_markdown":true} -->
+
+We can also pattern match the head and tail of the list with `[h | t]` syntax
+
+```elixir
+[head | tail] = [1, 2, 3, 4, 5, 6, 7, 8]
+```
+
+```elixir
+head
+```
+
+```elixir
+tail
+```
+
+if the list is actually empty...this fails as there is no way to match
+
+```elixir
+[h | t] = []
+```
+
+## Matching strings and binary data
+
+In elixir its possible to even match strings and binary data with match operator which makes it so powerful
+
+<!-- livebook:{"break_markdown":true} -->
+
+#### Strings
+
+<!-- livebook:{"break_markdown":true} -->
+
+Look at the LHS and RHS carefully
+
+```elixir
+"hello " <> subject = "hello WaveZync 🌊"
+```
+
+Now we can access `subject` 🤯
+
+```elixir
+subject
+```
+
+#### Binary data
+
+<!-- livebook:{"break_markdown":true} -->
+
+In elixir binary data represented as bitstrings, you can read more in [docs](https://hexdocs.pm/elixir/1.17.3/binaries-strings-and-charlists.html#bitstrings)
+
+```elixir
+<<year::binary-size(4), "-", month::binary-size(2), "-", day::binary-size(2)>> = "2024-11-01"
+```
+
+```elixir
+IO.inspect([year, month, day])
+```
+
+It means you can match a binary data packet coming through a wire and extract data 🤯
+
+![](files/tcp-headers-f2c0881ea4c94e919794b7c0677ab90a.jpg)
+
+8 bits = 1 byte
+
+so
+
+16 bits = 2 bytes
+
+<!-- livebook:{"break_markdown":true} -->
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+<<source_port::16, dest_port::16, seq_num::32, ack_num::32,
+  data_offset::4, reserved::3, flags::9, window_size::16,
+  checksum::16, urgent_pointer::16, optional_data::binary>> = tcp_packet
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+This is just super cool right?
