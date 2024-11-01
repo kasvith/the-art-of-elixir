@@ -1,0 +1,37 @@
+# Basic Types
+
+## Hello World
+
+```elixir
+IO.puts("Hello not from World")
+```
+
+## Basic Types
+
+### Integers
+
+```elixir
+10 # integer
+```
+
+```elixir
+0x3F # integer as hex
+```
+
+### Float
+
+```elixir
+105.67
+```
+
+### Atom
+
+Atoms are like `Symbols` in JS(similar to consts). In elixir atoms are used heavily for differentiating different values like `:ok` or `:error`
+
+```elixir
+:ok
+```
+
+```elixir
+:error
+```
