@@ -151,11 +151,8 @@ It means you can match a binary data packet coming through a wire and extract da
 
 ![](files/tcp-headers.jpg)
 
-8 bits = 1 byte
-
-so
-
-16 bits = 2 bytes
+- 8 bits = 1 byte
+- 16 bits = 2 bytes
 
 <!-- livebook:{"break_markdown":true} -->
 

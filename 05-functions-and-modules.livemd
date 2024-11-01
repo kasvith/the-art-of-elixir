@@ -1,0 +1,303 @@
+# Functions and Modules
+
+## Defining functions
+
+In elixir we can define functions with `fn` keyword
+
+```elixir
+add = fn a, b -> a + b end
+```
+
+This is an anonymous function
+
+In `Javascript` we write this like
+
+```javascript
+const adder = (a, b) => a + b
+```
+
+in `python` this is known as a lambda function
+
+```python
+adder = lambda a, b: a + b
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+Now lets execute our add function
+
+```elixir
+add.(10, 11)
+```
+
+to invoke an anonymous function you need to use a dot(`.`)
+
+this is used to identify anon function invoking from other function definitions
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Closures
+
+<!-- livebook:{"break_markdown":true} -->
+
+Like in JS we can access surrounding scope
+
+```elixir
+# Create an anonymous function that takes a greeting and returns another function
+make_greeting = fn greeting ->
+  # This inner function captures the `greeting` variable, creating a closure
+  fn name -> 
+    "#{greeting}, #{name}!"
+  end
+end
+
+# Create a closure that says "Hello"
+hello = make_greeting.("Hello")
+
+# Create another closure that says "Goodbye"
+goodbye = make_greeting.("Goodbye")
+```
+
+```elixir
+hello.("WaveZync 🌊")
+```
+
+```elixir
+goodbye.("World")
+```
+
+In JS it looks like this
+
+```javascript
+// Create a function that takes a greeting and returns another function
+const makeGreeting = (greeting) => (name) => `${greeting}, ${name}!`;
+
+// Create a closure that says "Hello"
+const hello = makeGreeting("Hello");
+
+// Create another closure that says "Goodbye"
+const goodbye = makeGreeting("Goodbye");
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Clauses and Guards
+
+<!-- livebook:{"break_markdown":true} -->
+
+In the following function we have two parameters
+
+in each clause we are doing pattern matching and same time using a guard with `when`
+
+as a fallback we have the last catch all clause to handle any other param
+
+```elixir
+can_drink = fn
+  age, "USA" when age >= 21 -> "You're allowed to drink in the USA."
+  _age, "USA" -> "You're not allowed to drink in the USA."
+  
+  age, "Germany" when age >= 16 -> "You're allowed to drink in Germany."
+  _age, "Germany" -> "You're not allowed to drink in Germany."
+
+  age, "Japan" when age >= 20 -> "You're allowed to drink in Japan."
+  _age, "Japan" -> "You're not allowed to drink in Japan."
+
+  _, country -> "Drinking age information for #{country} is not available."
+end
+```
+
+```elixir
+IO.puts can_drink.(18, "USA")       
+IO.puts can_drink.(21, "USA")       
+IO.puts can_drink.(17, "Germany")   
+IO.puts can_drink.(15, "Germany")   
+IO.puts can_drink.(20, "Japan")     
+IO.puts can_drink.(18, "Japan")     
+IO.puts can_drink.(18, "France")    
+```
+
+### Capture Operator
+
+<!-- livebook:{"break_markdown":true} -->
+
+We used `func_name/arity` convention(like `put_in/2`), actually it can be used with capture operator
+
+```elixir
+add = &+/2
+```
+
+```elixir
+add.(1,3)
+```
+
+Remember in Elixir `+` is also a function 😊 (Defined in `Kernel` module as [`Kernel.+/2`](https://hexdocs.pm/elixir/1.17.3/Kernel.html#+/2))
+
+This becomese useful later with data transformation
+
+<!-- livebook:{"break_markdown":true} -->
+
+Now we can capture any function as a variable also
+
+<!-- livebook:{"break_markdown":true} -->
+
+We can also use a shorthand notation for anon functions
+
+```elixir
+add_1 = &(&1 + &2)
+```
+
+```elixir
+add_2 = fn a, b -> a + b end
+```
+
+```elixir
+add_1.(1, 5)
+```
+
+```elixir
+add_2.(1, 5)
+```
+
+This is used practically to simplify many data transformations
+an example is listed below
+
+```elixir
+names = ["alice", nil, "bob", "", "carol"]
+
+result =
+  names
+  |> Enum.reject(&is_nil/1)                    # Remove nil values
+  |> Enum.reject(&(&1 == ""))                  # Remove empty strings
+  |> Enum.map(&String.upcase/1)                # Convert each name to uppercase
+  |> Enum.map(&("Name: #{&1}"))                # Format each name with a prefix
+
+IO.inspect(result)
+```
+
+## Modules
+
+Modules allow to organize functions. In other languages this is like a class(but there is a difference)
+
+Simply think of this as a group of functions
+
+```elixir
+defmodule MathUtils do
+  @moduledoc """
+  A simple module with basic mathematical utility functions.
+  """
+
+  @doc """
+  Adds two numbers.
+  """
+  def add(a, b) when is_number(a) and is_number(b) do
+    a + b
+  end
+
+  @doc """
+  Multiplies two numbers.
+  """
+  def multiply(a, b) when is_number(a) and is_number(b) do
+    a * b
+  end
+
+  @doc """
+  Checks if a number is even.
+  """
+  def even?(n) when is_number(n) do
+    rem(n, 2) == 0
+  end
+
+  @doc """
+  Calculates the square of a number.
+  """
+  def square(n) when is_number(n) do
+    n * n
+  end
+
+  @doc """
+  Describes a number as positive, negative, or zero.
+  """
+  def describe_number(n) when is_number(n) and n > 0 do
+    "The number is positive."
+  end
+
+  def describe_number(n) when is_number(n) and n < 0 do
+    "The number is negative."
+  end
+
+  def describe_number(0) do
+    "The number is zero."
+  end
+
+  def describe_number(_non_number) do
+    "This is not a valid number."
+  end
+end
+```
+
+```elixir
+# Testing the module
+IO.puts MathUtils.describe_number(5)       # Outputs: The number is positive.
+IO.puts MathUtils.describe_number(-3)      # Outputs: The number is negative.
+IO.puts MathUtils.describe_number(0)       # Outputs: The number is zero.
+IO.puts MathUtils.describe_number("hello") # Outputs: This is not a valid number.
+```
+
+In elixir as a convention we are using ? to indicate a function result will be a boolean
+
+<!-- livebook:{"break_markdown":true} -->
+
+In above example we can see `describe_number/1` appear multiple times with guards
+
+This pattern allows us to move logic into function signature and do pattern matching to get a result
+Its a common pattern in elixir to pattern match on function signature itself
+
+Also compared to a `if` statement, when you have patterns in the function header compiler does optimizations
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Default Parameters
+
+<!-- livebook:{"break_markdown":true} -->
+
+We can pass default params with `\\`
+
+```elixir
+defmodule Greeting do
+  def greet(name, greeting \\ "Hello") do
+    "#{greeting}, #{name}!"
+  end
+end
+```
+
+```elixir
+IO.puts Greeting.greet("Alice")             # Outputs: Hello, Alice!
+IO.puts Greeting.greet("Alice", "Hi")       # Outputs: Hi, Alice!
+IO.puts Greeting.greet("Alice", "Welcome")  # Outputs
+```
+
+If a function with default values has multiple clauses, we need to createe a function head
+(definition without body) to declarae defaults
+
+```elixir
+defmodule Describe do
+  # Function head declaring defaults
+  def details(name, age \\ nil, title \\ "Unknown")
+
+  # Clause where age is not provided
+  def details(name, nil, title) do
+    "#{title} #{name}"
+  end
+
+  # Clause where all parameters are provided
+  def details(name, age, title) do
+    "#{title} #{name}, age #{age}"
+  end
+end
+```
+
+```elixir
+IO.puts Describe.details("Alice", 30, "Dr.")      # Outputs: Dr. Alice, age 30
+IO.puts Describe.details("Alice", 30)             # Outputs: Unknown Alice, age 30
+IO.puts Describe.details("Alice")                 # Outputs: Unknown Alice
+```
