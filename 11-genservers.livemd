@@ -1,0 +1,73 @@
+# GenServer
+
+## Lets create a simple GenServer
+
+GenServer is commonly used to store complex states with a client/server like API
+
+> `__MODULE__` is a special macro to refer current module
+
+`use GenServer` brings all necessary stuffs to manage a gen server. its also a macro
+
+Now with client callbacks, `GenServer` can respond to messages
+
+```elixir
+defmodule Counter do
+  use GenServer
+
+  # Client API
+
+  # Starts the GenServer
+  def start_link(initial_value \\ 0) do
+    GenServer.start_link(__MODULE__, initial_value, name: __MODULE__)
+  end
+
+  # Gets the current count
+  def get_count do
+    GenServer.call(__MODULE__, :get_count)
+  end
+
+  # Increments the count
+  def increment do
+    GenServer.cast(__MODULE__, :increment)
+  end
+
+  # Server (GenServer) Callbacks
+
+  # Initializes the state with an initial value
+  @impl true
+  def init(initial_value) do
+    {:ok, initial_value}
+  end
+
+  # Handles the synchronous call to get the count
+  @impl true
+  def handle_call(:get_count, _from, state) do
+    {:reply, state, state}
+  end
+
+  # Handles the asynchronous cast to increment the count
+  @impl true
+  def handle_cast(:increment, state) do
+    {:noreply, state + 1}
+  end
+end
+```
+
+Lets use this gen server
+
+```elixir
+{:ok, _pid} = Counter.start_link(10)    # Start the server with an initial value of 10
+Counter.get_count()                                        
+```
+
+```elixir
+Counter.increment()
+```
+
+```elixir
+Counter.get_count()
+```
+
+> Lot of concepts in Elixir/Erlang is built around `GenServer`s
+> 
+> Its like a building block
