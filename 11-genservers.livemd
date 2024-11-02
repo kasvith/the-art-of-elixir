@@ -8,8 +8,6 @@ GenServer is commonly used to store complex states with a client/server like API
 
 `use GenServer` brings all necessary stuffs to manage a gen server. its also a macro
 
-Now with client callbacks, `GenServer` can respond to messages
-
 ```elixir
 defmodule Counter do
   use GenServer
@@ -68,6 +66,149 @@ Counter.increment()
 Counter.get_count()
 ```
 
+#### What is happening? 🤷‍♂️
+
+In the above definition we are starting a `GenServer` with the Module name(`Counter`)
+The `name` you see in the `start_link` allows us to idnetify the Process easily
+
+##### What is Client/Server APIs
+
+For our business logic we dont want to involve `GenServer`, instead we use thin wrappers to do `GenServer` calls without letting the caller knows whats inside.
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+  # Gets the current count
+  def get_count do
+    GenServer.call(__MODULE__, :get_count)
+  end
+```
+
+in here we are simply abstracting our logic which calls a function `call/2` on `GenServer`
+
+#### What is `call/2` and `cast/2` ?
+
+* `call/2` is used to do a synchronous call to the server, so caller will wait for the reply from server
+
+> 💡 In JS this is similar to a `async/await` call.
+> 
+> ```javascript
+> await fetchUserCount()
+> ```
+
+* `cast/2` is doing an async call. Now caller doesnt wait for reply from the server.
+
+We need to decide what to use based on our application requirements 🙌
+
+#### Server callbacks
+
+Now when you do `call` or `cast` from client API, `GenServer` receive messages to the process and `handle_call` is invoked by `GenServer` process
+
+> 💡 In our previous bare bone `Process` creation, we got messages with `receive`. This is just a nicer way to handle the same thing
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+  @impl true
+  def handle_call(:get_count, _from, state) do
+    {:reply, state, state}
+  end
+```
+
+Above snippet is handling a `call` made to the `GenServer` and using Pattern Matching to identify
+the message(as you already know we can pattern match on function signature)
+
+for a `call` the server must reply to client with `:reply`
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+{:reply, reply_to_caller, new_state}
+```
+
+When we have a `cast`, the `handle_cast` function is invoked inside the `GenServer`
+
+Now we dont need to reply back, but we can update our internal state or do whatever we want
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+{:noreply, new_state}
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
 > Lot of concepts in Elixir/Erlang is built around `GenServer`s
 > 
 > Its like a building block
+
+## Handling other messages
+
+A `GenServer` is just a process, it can also receive any message from anywhere. So its not limited to just `call` or `cast`
+
+To handle anything else there is an another server callback called `handle_info`
+
+```elixir
+defmodule PeriodicLogger do
+  use GenServer
+
+  # Starts the GenServer with an initial state and schedules a periodic timeout
+  def start_link(initial_message) do
+    GenServer.start_link(__MODULE__, initial_message, name: __MODULE__)
+  end
+
+  ## Client API
+
+  # Public function to change the logging message
+  def change_message(new_message) do
+    GenServer.cast(__MODULE__, {:change_message, new_message})
+  end
+
+  ## Server Callbacks
+
+  @impl true
+  def init(initial_message) do
+    # Set an initial message and schedule the first timeout for 5 seconds
+    schedule_timeout()
+    {:ok, initial_message}
+  end
+
+  @impl true
+  def handle_cast({:change_message, new_message}, _state) do
+    {:noreply, new_message}
+  end
+
+  @impl true
+  def handle_info(:timeout, current_message) do
+    # Log the current message when the timeout triggers
+    IO.puts("Logging message: #{current_message}")
+
+    # Reschedule the timeout for another 5 seconds
+    schedule_timeout()
+    {:noreply, current_message}
+  end
+
+  # Helper function to schedule a timeout in 5 seconds
+  defp schedule_timeout do
+    Process.send_after(self(), :timeout, 5000)
+  end
+end
+```
+
+In here we are using `Process` module to send a message to current process after a timeout of 5s
+
+This message will be recevied by the `GenServer` and forward to `handle_info` as its not a `call` or `cast`
+
+```elixir
+{:ok, pid} = PeriodicLogger.start_link("Hello, world!")
+```
+
+```elixir
+PeriodicLogger.change_message("New message!")
+```
+
+Lets kill the process
+
+```elixir
+GenServer.stop(PeriodicLogger)
+```

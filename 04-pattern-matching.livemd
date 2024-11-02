@@ -13,7 +13,7 @@ x = 1
 in Elixir we can do something like this
 
 ```elixir
-1 = x # 1 and x are equal?
+1 = x # 1 and x are equal? 
 ```
 
 It may look weird, because in JS you cant do this as `=` means only assignment to LHS
@@ -36,6 +36,32 @@ it seems that when you want to define a variable it should be assigned from LHS 
 but once assigned we call it as both holds an equality
 
 So `y = 10` means `y` will hold the value called `10`
+
+## Matching existing values
+
+Since `=` will rebound a variable on right side this happens
+
+```elixir
+x = 1
+```
+
+```elixir
+x = 2 
+```
+
+Now how can we check if `x` is 1 if its on LHS?
+
+for that elixir has `^`, pin operator
+
+```elixir
+x = 1
+```
+
+```elixir
+^x = 100000
+```
+
+Now it shows an error since `x` is pinned to the previously bounded value when comparision happens
 
 ## Matching complex types
 
@@ -63,9 +89,15 @@ Lets try to match something which doesnt really make sense, a list and tuple
 [a, b, c] = {:a, :b}
 ```
 
-So it fails as expected
+So it fails as expected.
 
-<!-- livebook:{"break_markdown":true} -->
+We can also use pin(`^`) operator here
+
+```elixir
+name = "Frodo"
+
+{ ^name, race } = { "Sam", :hobbit }
+```
 
 ### Lists
 
@@ -149,10 +181,10 @@ IO.inspect([year, month, day])
 
 It means you can match a binary data packet coming through a wire and extract data 🤯
 
-![](files/tcp-headers.jpg)
+![](files/tcp-headers-f2c0881ea4c94e919794b7c0677ab90a.jpg)
 
-- 8 bits = 1 byte
-- 16 bits = 2 bytes
+* 8 bits = 1 byte
+* 16 bits = 2 bytes
 
 <!-- livebook:{"break_markdown":true} -->
 

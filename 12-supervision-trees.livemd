@@ -1,0 +1,142 @@
+# Supervision Trees 🌳
+
+## Hello Fault Tolerence
+
+In Elixir, we usually dont start `GenServer`s with `start_link`
+
+Instead we are using `Supervisor`s which allows you to create multiple `GenServer`s and monitor them
+
+Lets create a `PizzaShop` GenServer and start few of them using `Supervisor`
+
+Take a note in here that we are passing `name` option to `start_link/3`. This registers `GenServer` under the name given by user
+
+So when we start `Supervisor` we can pass this argument and find the correct `PizzaShop` by the name we given earlier
+
+```elixir
+defmodule PizzaShop do
+  use GenServer
+
+  # Define a maximum order limit for the shop
+  @max_orders 5
+
+  ## Client API
+
+  def start_link(name) do
+    IO.puts("Starting PizzaShop #{inspect(name)}")
+    GenServer.start_link(__MODULE__, %{orders: 0}, name: name)
+  end
+
+  # Place an order
+  def place_order(pid) do
+    GenServer.call(pid, :place_order)
+  end
+
+  # Check the current number of orders
+  def check_orders(pid) do
+    GenServer.call(pid, :check_orders)
+  end
+
+  # Reset the order count (for demonstration purposes)
+  def reset_orders(pid) do
+    GenServer.cast(pid, :reset_orders)
+  end
+
+  ## Server Callbacks
+  @impl true
+  def init(state) do
+    {:ok, state}
+  end
+
+  @impl true
+  def handle_call(:place_order, _from, %{orders: orders} = state) when orders < @max_orders do
+    # Increment the order count
+    IO.puts("Placing order")
+    {:reply, :ok, %{state | orders: orders + 1}}
+  end
+
+  @impl true
+  def handle_call(:place_order, _from, %{orders: orders}) when orders >= @max_orders do
+    # Simulate a crash if the maximum order limit is reached
+    IO.puts("Ohh we are overloaded")
+    {:stop, :max_orders_reached, :error}
+  end
+
+  @impl true
+  def handle_call(:check_orders, _from, state) do
+    # Return the current order count
+    {:reply, state.orders, state}
+  end
+
+  @impl true
+  def handle_cast(:reset_orders, _state) do
+    # Reset the order count to zero
+    {:noreply, %{orders: 0}}
+  end
+
+  @impl true
+  def terminate(reason, _state) do
+    IO.puts("PizzaShop terminated due to: #{reason}")
+    :ok
+  end
+end
+```
+
+### Creating the `Supervisor`
+
+<!-- livebook:{"break_markdown":true} -->
+
+`Supervisor` can have many children as shown below.
+
+When we call `Supervisor.init` its expecting a list of children as `child_specs`
+
+In simple terms it simply tells about the name to identify each `PizzaShop`.
+Take a look at `id` field in the map(`:shop1` etc). This is like a unique name to identify each shop
+
+```elixir
+defmodule PizzaShopSupervisor do
+  use Supervisor
+
+  def start_link() do
+    Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
+  end
+
+  def init(:ok) do
+    # Define child specs for multiple pizza shops
+    children = [
+      %{
+        id: :shop1,
+        start: {PizzaShop, :start_link, [:shop1]},
+        restart: :permanent
+      },
+      %{
+        id: :shop2,
+        start: {PizzaShop, :start_link, [:shop2]},
+        restart: :permanent
+      },
+      %{
+        id: :shop3,
+        start: {PizzaShop, :start_link, [:shop3]},
+        restart: :permanent
+      }
+    ]
+
+    # Start the supervisor with the defined child specs
+    Supervisor.init(children, strategy: :one_for_one)
+  end
+end
+```
+
+Lets start it
+
+```elixir
+{:ok, _sup} = PizzaShopSupervisor.start_link()
+```
+
+Lets lookup for the children started by Supervisor
+This is for demo purpose only
+
+In real world cases you may use `Registry` to lookup the children processes
+
+```elixir
+PizzaShop.place_order(:shop1)
+```
