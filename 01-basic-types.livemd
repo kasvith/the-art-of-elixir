@@ -36,6 +36,10 @@ Atoms are like `Symbols` in JS(similar to consts). In elixir atoms are used heav
 :error
 ```
 
+```elixir
+:sunny_weather
+```
+
 There are several special atoms we use for `boolean`s and `null`s 👇
 
 <!-- livebook:{"break_markdown":true} -->

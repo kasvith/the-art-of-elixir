@@ -119,7 +119,7 @@ So we dont produce more data, its just bunch of functions running together
 Now we got a new project which has to process thousands of CSV files and calculate OT hours for
 each employee
 
-our `worksheet.csv` looks like this (more than 20K records)
+our `worksheet` looks like this (more than 20K records)
 
 ```csv
 employee_id,employee_name,hours_worked,date
@@ -155,8 +155,6 @@ defmodule OvertimeCalculator do
     |> Stream.map(&parse_line/1)
     # Group shifts by employee ID
     |> Enum.group_by(& &1.employee_id)
-    # We can peek whats the output of each step with IO.inspect()
-    |> IO.inspect()
     # Calculate daily overtime per employee
     |> Enum.map(&calculate_daily_ot/1)
   end
