@@ -62,13 +62,27 @@ odd? = fn x -> rem(x, 2) != 0 end
 1..100_000 |> Enum.map(&(&1 * 3)) |> Enum.filter(odd?) |> Enum.sum()
 ```
 
+Lets see whats actually going on here?
+
+To inspect every step in a pipeline, we can simply use `IO.inspect()`
+
+```elixir
+1..100_000
+|> IO.inspect(label: "original")
+|> Enum.map(&(&1 * 3))
+|> IO.inspect(label: "multiplication")
+|> Enum.filter(odd?)
+|> IO.inspect(label: "is odd?")
+|> Enum.sum()
+```
+
 #### Streams
 
 <!-- livebook:{"break_markdown":true} -->
 
 `Stream` is also like `Enum` but allows you to lazy evaluate stuff.
 
-In above example at each output we generated a sequence like a list, but its not really needed if we lazy evaluate it at the sum step
+In above example at each step we generated a sequence like a list, but we need to calculate everything at the last step...
 
 `Stream` allows you to do that
 
@@ -79,6 +93,26 @@ In above example at each output we generated a sequence like a list, but its not
 `Stream` is like a lazy `Enum`
 
 This is very useful when you are reading a large file and processing data
+
+<!-- livebook:{"break_markdown":true} -->
+
+Lets inspect whats actually going on
+
+```elixir
+1..100_000
+|> IO.inspect(label: "original")
+|> Stream.map(&(&1 * 3))
+|> IO.inspect(label: "multiplication")
+|> Stream.filter(odd?)
+|> IO.inspect(label: "is odd?")
+|> Enum.sum()
+```
+
+So each call to `Stream` module creates a function which takes input data and wraps it in another function
+
+When we invoke the `Enum.sum` at last step, all the functions we created earlier get executed
+
+So we dont produce more data, its just bunch of functions running together
 
 ## Streams in action with Pipe
 
