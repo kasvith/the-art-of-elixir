@@ -13,7 +13,7 @@ x = 1
 in Elixir we can do something like this
 
 ```elixir
-1 = x # 1 and x are equal?
+1 = x # 1 and x are equal? 
 ```
 
 It may look weird, because in JS you cant do this as `=` means only assignment to LHS
@@ -46,7 +46,7 @@ x = 1
 ```
 
 ```elixir
-x = 2
+x = 2 
 ```
 
 Now how can we check if `x` is 1 if its on LHS?
@@ -183,8 +183,8 @@ It means you can match a binary data packet coming through a wire and extract da
 
 ![](files/tcp-headers.jpg)
 
-- 8 bits = 1 byte
-- 16 bits = 2 bytes
+* 8 bits = 1 byte
+* 16 bits = 2 bytes
 
 <!-- livebook:{"break_markdown":true} -->
 
