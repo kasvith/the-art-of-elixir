@@ -1,10 +1,11 @@
-<!-- livebook:{"file_entries":[{"name":"worksheet.csv","type":"attachment"}]} -->
+<!-- livebook:{"file_entries":[{"name":"Employee_WorkHours_Dataset.csv","type":"attachment"}]} -->
 
 # Pipes
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.14.0"}
+  {:kino, "~> 0.14.0"},
+  {:kino_explorer, "~> 0.1.20"}
 ])
 ```
 
@@ -84,62 +85,104 @@ This is very useful when you are reading a large file and processing data
 Now we got a new project which has to process thousands of CSV files and calculate OT hours for
 each employee
 
-our `worksheet.csv` looks like this (more than 10K records)
+our `worksheet.csv` looks like this (more than 20K records)
 
 ```csv
-employee_id,employee_name,hours_worked
-1,John Doe,25
-1,John Doe,20
-2,Jane Smith,38
-3,Bob Johnson,30
-3,Bob Johnson,25
-4,Alice Brown,42
+employee_id,employee_name,hours_worked,date
+7,George Clark,14,2023-02-13
+2,Jane Smith,9,2023-03-03
+6,Emily Davis,14,2023-11-19
+11,Kevin Scott,9,2023-08-15
 ```
 
 ```elixir
 file_path =
-  Kino.FS.file_path("worksheet.csv")
+  Kino.FS.file_path("Employee_WorkHours_Dataset.csv")
+```
+
+Using `Kino` we can visualize it in the Livebook
+
+```elixir
+csv_dataset = file_path |> Explorer.DataFrame.from_csv!
 ```
 
 ```elixir
 defmodule OvertimeCalculator do
-  @ot_threshold 40
+  @daily_ot_threshold 8
+  @base_pay 10
+  @ot_rate 0.5
 
   def calculate_ot(input_path) do
     input_path
     |> File.stream!()
-    |> Stream.drop(1)  # Skip header row
+    # Skip header row
+    |> Stream.drop(1)
+    # Parse each line
     |> Stream.map(&parse_line/1)
-    |> Enum.group_by(& &1.employee_id)  # Group shifts by employee ID
-    |> Enum.map(&calculate_total_hours_and_ot/1) # Here it starts to work
+    # Group shifts by employee ID
+    |> Enum.group_by(& &1.employee_id)
+    # We can peek whats the output of each step with IO.inspect()
+    |> IO.inspect()
+    # Calculate daily overtime per employee
+    |> Enum.map(&calculate_daily_ot/1)
   end
 
   defp parse_line(line) do
-    [employee_id, employee_name, hours_worked_str] = String.split(line, ",")
+    [employee_id, employee_name, hours_worked_str, date_str] = String.split(line, ",")
     hours_worked = String.to_integer(String.trim(hours_worked_str))
+    date = Date.from_iso8601!(String.trim(date_str))
 
     %{
       employee_id: employee_id,
       employee_name: employee_name,
-      hours_worked: hours_worked
+      hours_worked: hours_worked,
+      date: date
     }
   end
 
-  defp calculate_total_hours_and_ot({employee_id, shifts}) do
-    total_hours = Enum.reduce(shifts, 0, fn shift, acc -> acc + shift.hours_worked end)
-    ot_hours = max(total_hours - @ot_threshold, 0)
+  defp calculate_daily_ot({employee_id, shifts}) do
+    # Calculate daily overtime for each shift
+    daily_ot_data =
+      shifts
+      |> Enum.map(fn shift ->
+        ot_hours = max(shift.hours_worked - @daily_ot_threshold, 0)
+        ot_pay = ot_hours * @base_pay * @ot_rate
+
+        %{
+          date: shift.date,
+          hours_worked: shift.hours_worked,
+          ot_hours: ot_hours,
+          ot_pay: ot_pay
+        }
+      end)
+
+    # Sum up total hours, overtime hours, and overtime pay for the employee
+    total_hours = Enum.sum(for day <- daily_ot_data, do: day.hours_worked)
+    total_ot_hours = Enum.sum(for day <- daily_ot_data, do: day.ot_hours)
+    total_ot_pay = Enum.sum(for day <- daily_ot_data, do: day.ot_pay)
+
+    # get emp name
+    employee_name = shifts |> List.first() |> Map.get(:employee_name)
 
     %{
       employee_id: employee_id,
-      employee_name: shifts |> List.first() |> Map.get(:employee_name),
+      employee_name: employee_name,
       total_hours: total_hours,
-      ot_hours: ot_hours
+      total_ot_hours: total_ot_hours,
+      total_ot_pay: total_ot_pay
     }
   end
 end
-
 ```
 
 ```elixir
-file_path |> OvertimeCalculator.calculate_ot()
+overtime = file_path |> OvertimeCalculator.calculate_ot()
+```
+
+Lets visualize it with `Kino`
+
+> `Kino` is a nice package which let you interact with data in Livebook
+
+```elixir
+overtime |> Kino.DataTable.new
 ```
