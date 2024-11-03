@@ -38,6 +38,10 @@ Atoms are like `Symbols` in JS(similar to consts). In elixir atoms are used heav
 
 There are several special atoms we use for `boolean`s and `null`s 👇
 
+<!-- livebook:{"break_markdown":true} -->
+
+> You should avoid creating atoms at runtime most of the time
+
 ## Null values
 
 ```elixir

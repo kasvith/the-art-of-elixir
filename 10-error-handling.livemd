@@ -1,0 +1,192 @@
+<!-- livebook:{"file_entries":[{"name":"random_names.csv","type":"attachment"}]} -->
+
+# Error Handling in Elixir
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.14.0"}
+])
+```
+
+## With Pattern matching
+
+Its common to use tuples for represent results in Elixir.
+
+You have already seen how it works with `File` module
+
+```elixir
+file_path =
+  Kino.FS.file_path("random_names.csv")
+```
+
+Lets read the file with `File.read/1`
+
+```elixir
+file_path |> File.read()
+```
+
+We are getting a tuple with
+
+`{:ok, content}`
+
+<!-- livebook:{"break_markdown":true} -->
+
+Now lets try to open a non existing file
+
+```elixir
+File.read("hello.404")
+```
+
+Now we get another tuple `{:error, reason}`
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Conventions
+
+In elixir its common to represent results like
+
+`{:ok, value}`
+
+`{:error, reason}`
+
+you are not limited to number of elements in tuple
+
+the first thing to notice is first element is either `:ok` or `:error`
+
+<!-- livebook:{"break_markdown":true} -->
+
+Now we can do pattern matching aginst this to determine the flow
+
+```elixir
+defmodule UserService do
+  # Simulating a simple in-memory "database" of users
+  @users %{
+    1 => %{id: 1, name: "Alice"},
+    2 => %{id: 2, name: "Bob"}
+  }
+
+  # Function to fetch a user by ID with tuple-based error handling
+  def get_user(id) do
+    case Map.fetch(@users, id) do
+      {:ok, user} -> {:ok, user}
+      :error -> {:error, "User not found"}
+    end
+  end
+
+  # A function that uses `get_user` and handles its response
+  def print_user_name(id) do
+    case get_user(id) do
+      {:ok, user} -> IO.puts("User found: #{user.name}")
+      {:error, reason} -> IO.puts("Error: #{reason}")
+    end
+  end
+end
+```
+
+```elixir
+UserService.print_user_name(1)
+```
+
+```elixir
+UserService.print_user_name(4)
+```
+
+## Try/Catch/Rescue
+
+This is really uncommon in elixir world, but we can use exceptions
+
+> This is similar to `try/catch/finally` block in JS
+
+```elixir
+:foo + 1
+```
+
+Above code throws an error(exception) since we cant add an atom to a number
+
+<!-- livebook:{"break_markdown":true} -->
+
+We can raise error with `raise` keyword too
+
+```elixir
+raise "oops"
+```
+
+We can create custom exceptions too
+
+```elixir
+defmodule MyApp.CustomError do
+  # Defines a custom exception with a message and additional data
+  defexception [:message, :details]
+
+  # Sets a default message if none is provided
+  def exception(opts) do
+    message = opts[:message] || "An error occurred in MyApp"
+    details = opts[:details] || %{}
+    %MyApp.CustomError{message: message, details: details}
+  end
+end
+```
+
+### try/rescue
+
+<!-- livebook:{"break_markdown":true} -->
+
+`rescue` can rescue an error when raised
+
+> We can raise exceptions for errors happens during program execution, like invalid inputs etc
+
+```elixir
+result = try do
+  # Simulating an error
+  raise "Something went wrong!"
+rescue
+  e in RuntimeError -> 
+    IO.puts("Caught a RuntimeError: #{e.message}")
+    {:error, :runtime_error}
+
+  _ ->
+    IO.puts("Caught an unknown error")
+    {:error, :unknown}
+end
+```
+
+### try/catch
+
+<!-- livebook:{"break_markdown":true} -->
+
+`throw` is a way to escape from the control flow, similar to an early exit
+
+> This is also an uncommon pattern, we usually use a porper API to handle the case
+
+```elixir
+result = try do
+  Enum.each(1..10, fn x ->
+    if x == 5, do: throw(:found)  # Throws a signal when x is 5
+  end)
+  :not_found
+catch
+  :throw, :found -> 
+    IO.puts("Value found, stopping early.")
+    :found
+end
+```
+
+## Conventions
+
+Most of the time you will use tuples or atoms to represent results instead of using `try/catch/rescue`
+
+Lets look at an example
+
+`File.read/1` returns us a tuple
+
+```elixir
+File.read("bello.txt")
+```
+
+We also have a function called `File.read!/1` which raise an exception
+
+```elixir
+File.read!("bello.txt")
+```
+
+So when writing functions its common to use a `!` to let caller knows that the function may raise an error
