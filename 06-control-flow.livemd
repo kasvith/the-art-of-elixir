@@ -51,6 +51,23 @@ allegiance =
 IO.puts "#{character} is a #{allegiance}."    
 ```
 
+In elixir variables in elixir are immutable within their specific scope
+
+```elixir
+foo = 1
+if true do
+  foo = 2
+end
+```
+
+Now we have `foo` outside `if` block and there is another one inside
+
+when executed, the outer `foo` has no effect
+
+```elixir
+foo
+```
+
 ## case
 
 This is similar to a switch statement in other langs.
