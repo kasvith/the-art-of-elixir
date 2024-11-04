@@ -189,9 +189,23 @@ defmodule OvertimeCalculator do
       end)
 
     # Sum up total hours, overtime hours, and overtime pay for the employee
-    total_hours = Enum.sum(for day <- daily_ot_data, do: day.hours_worked)
-    total_ot_hours = Enum.sum(for day <- daily_ot_data, do: day.ot_hours)
-    total_ot_pay = Enum.sum(for day <- daily_ot_data, do: day.ot_pay)
+
+    # We can do it like this 
+    
+    # total_hours = Enum.sum(for day <- daily_ot_data, do: day.hours_worked)
+    # total_ot_hours = Enum.sum(for day <- daily_ot_data, do: day.ot_hours)
+    # total_ot_pay = Enum.sum(for day <- daily_ot_data, do: day.ot_pay)
+
+    # Or we can do it like this with reduce
+
+    {total_hours, total_ot_hours, total_ot_pay} =
+      Enum.reduce(daily_ot_data, {0, 0, 0}, fn day, {hours_acc, ot_hours_acc, ot_pay_acc} ->
+        {
+          hours_acc + day.hours_worked,
+          ot_hours_acc + day.ot_hours,
+          ot_pay_acc + day.ot_pay
+        }
+      end)
 
     # get emp name
     employee_name = shifts |> List.first() |> Map.get(:employee_name)
