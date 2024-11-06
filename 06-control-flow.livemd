@@ -331,83 +331,156 @@ And same logic with elixir looks like follows
 <!-- livebook:{"force_markdown":true} -->
 
 ```elixir
-defmodule TransactionHandler do
-  def handle_transactions_task(webhook_response) do
-    log_webhook_response(webhook_response)
+defmodule TruelayerService do
+  alias MyApp.{Repo, TruelayerTask, ObBankCredential, Transaction, TruelayerClient}
+  require Logger
 
-    with {:ok, task_response} <- update_task_status(webhook_response),
-         {:ok, user_id} <- fetch_user_id(task_response),
-         {:ok, credential_id} <- fetch_credential_id(task_response),
+  @provider "TRUELAYER"
+  @pending_status "Pending"
+
+  def handle_transactions_task(%{"results_uri" => transactions_data_uri, "task_id" => task_id} = webhook_response) do
+    Logger.info("Truelayer service transaction webhook response: #{inspect(webhook_response)}")
+
+    with {:ok, %{user_id: user_id, credential_id: credential_id}} <- update_task_status(task_id, webhook_response["status"]),
          {:ok, access_token} <- fetch_access_token(credential_id),
-         {:ok, transactions_data} <- fetch_transactions_data(access_token, webhook_response.results_uri),
-         {:ok, _} <- process_transactions(transactions_data, user_id) do
-      :ok
+         {:ok, %{"results" => results}} <- TruelayerClient.get_data_from_uri(access_token, transactions_data_uri) do
+      process_transactions(results, user_id)
     else
-      {:error, reason} -> {:error, reason}
+      {:error, reason} ->
+        Logger.error("Failed to handle transactions task: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 
-  defp log_webhook_response(webhook_response) do
-    Logger.info("Truelayer service transaction webhook response: #{inspect(webhook_response)}")
-  end
+  defp update_task_status(task_id, status) do
+    query = from(t in TruelayerTask, where: t.task_id == ^task_id, select: %{user_id: t.user_id, credential_id: t.credential_id})
 
-  defp update_task_status(%{task_id: task_id, status: status}) do
-    # Outline of updating the task status in the database
-    {:ok, task_response} = :stubbed_query
-    {:ok, task_response}
-  end
-
-  defp fetch_user_id(task_response) do
-    # Extract user_id from task response
-    user_id = :stubbed_user_id
-    {:ok, user_id}
-  end
-
-  defp fetch_credential_id(task_response) do
-    # Extract credential_id from task response
-    credential_id = :stubbed_credential_id
-    {:ok, credential_id}
+    case Repo.update_all(query, set: [status: status]) do
+      {1, [task_response]} -> {:ok, task_response}
+      _ -> {:error, :task_not_found}
+    end
   end
 
   defp fetch_access_token(credential_id) do
-    # Query to get access token by credential_id
-    access_token = :stubbed_access_token
-    {:ok, access_token}
+    case Repo.get(ObBankCredential, credential_id) do
+      %ObBankCredential{access_token: access_token} -> {:ok, access_token}
+      nil -> {:error, :credential_not_found}
+    end
   end
 
-  defp fetch_transactions_data(access_token, transactions_data_uri) do
-    # Fetch transaction data from TrueLayer using access token and data URI
-    transactions_data = :stubbed_transactions_data
-    {:ok, transactions_data}
+  defp process_transactions(transactions, user_id) do
+    transactions
+    |> Enum.filter(&(&1["transaction_type"] == "DEBIT"))
+    |> Enum.each(&save_transaction(&1, user_id))
   end
 
-  defp process_transactions(transactions_data, user_id) do
-    transactions = extract_transactions(transactions_data)
+  defp save_transaction(transaction, user_id) do
+    transaction_data = build_transaction_data(transaction, user_id)
+    Logger.info("Processing Truelayer transaction: #{inspect(transaction_data)}")
 
-    Enum.each(transactions, fn transaction ->
-      if transaction[:transaction_type] == :debit do
-        transaction_data_payload = build_transaction_payload(transaction, user_id)
-        Logger.info("Truelayer service transaction data payload: #{inspect(transaction_data_payload)}")
-        save_transaction(transaction_data_payload)
-      end
-    end)
-
-    {:ok, :transactions_processed}
+    case Repo.insert(transaction_data) do
+      {:ok, _record} -> :ok
+      {:error, changeset} -> Logger.error("Failed to save transaction: #{inspect(changeset.errors)}")
+    end
   end
 
-  defp extract_transactions(transactions_data) do
-    # Extract and return transactions from the transactions data
-    :stubbed_transactions
+  defp build_transaction_data(transaction, user_id) do
+    %Transaction{
+      user_id: user_id,
+      amount: transaction["amount"] * 100 |> floor(),
+      currency_code: transaction["currency"],
+      merchant_name: transaction["merchant_name"],
+      type: transaction["transaction_type"],
+      category: transaction["transaction_category"],
+      provider: @provider,
+      provider_trx_id: transaction["provider_transaction_id"],
+      description: transaction["description"],
+      status: @pending_status,
+      trx_timestamp: parse_timestamp(transaction["timestamp"])
+    }
   end
 
-  defp build_transaction_payload(transaction, user_id) do
-    # Build and return the transaction data payload
-    :stubbed_transaction_payload
-  end
-
-  defp save_transaction(transaction_data_payload) do
-    # Save the transaction data payload
-    :ok
+  defp parse_timestamp(timestamp) do
+    case DateTime.from_iso8601(timestamp) do
+      {:ok, datetime, _offset} -> datetime
+      _ -> DateTime.utc_now()  # Default to current time if parsing fails
+    end
   end
 end
 ```
+
+## Pattern Matching on Function head
+
+In elixir its common to have lot of smaller functions for doing tasks. Since elixir has the capability to do pattern matching on almost everywhere we can do it on function heads as well.
+
+this leads to lesser nested code lines
+
+```elixir
+defmodule ShippingCalculator do
+  def calculate_shipping(product_type, destination, weight) do
+    {base_rate, handling_fee} =
+      case {product_type, destination} do
+        {"Electronics", :domestic} -> {15.0, 10.0}
+        {"Electronics", :international} -> {20.0, 25.0}
+        {"Clothing", :domestic} -> {5.0, 2.0}
+        {"Clothing", :international} -> {8.0, 5.0}
+        {"Furniture", :domestic} -> {25.0, 15.0}
+        {"Furniture", :international} -> {30.0, 50.0}
+        {_, :domestic} -> {10.0, 3.0}
+        {_, :international} -> {12.0, 10.0}
+      end
+
+    calculate_cost(base_rate, weight, handling_fee)
+  end
+
+  defp calculate_cost(base_rate, weight, handling_fee) do
+    shipping_cost = base_rate + weight * 0.5
+    shipping_cost + handling_fee
+  end
+end
+
+```
+
+```elixir
+IO.puts(ShippingCalculator.calculate_shipping("Electronics", :domestic, 10))   
+IO.puts(ShippingCalculator.calculate_shipping("Electronics", :international, 10)) 
+IO.puts(ShippingCalculator.calculate_shipping("Clothing", :domestic, 10))       
+IO.puts(ShippingCalculator.calculate_shipping("Furniture", :international, 10)) 
+IO.puts(ShippingCalculator.calculate_shipping("Toys", :domestic, 10))         
+```
+
+### With function head pattern matching
+
+```elixir
+defmodule NewShippingCalculator do
+  def calculate_shipping(product_type, destination, weight) do
+    {base_rate, handling_fee} = rates_and_fees(product_type, destination)
+    calculate_cost(base_rate, weight, handling_fee)
+  end
+
+  defp rates_and_fees("Electronics", :domestic), do: {15.0, 10.0}
+  defp rates_and_fees("Electronics", :international), do: {20.0, 25.0}
+  defp rates_and_fees("Clothing", :domestic), do: {5.0, 2.0}
+  defp rates_and_fees("Clothing", :international), do: {8.0, 5.0}
+  defp rates_and_fees("Furniture", :domestic), do: {25.0, 15.0}
+  defp rates_and_fees("Furniture", :international), do: {30.0, 50.0}
+  defp rates_and_fees(_, :domestic), do: {10.0, 3.0}
+  defp rates_and_fees(_, :international), do: {12.0, 10.0}
+
+  defp calculate_cost(base_rate, weight, handling_fee) do
+    shipping_cost = base_rate + weight * 0.5
+    shipping_cost + handling_fee
+  end
+end
+```
+
+```elixir
+# Usage
+IO.puts(NewShippingCalculator.calculate_shipping("Electronics", :domestic, 10))    
+IO.puts(NewShippingCalculator.calculate_shipping("Electronics", :international, 10)) 
+IO.puts(NewShippingCalculator.calculate_shipping("Clothing", :domestic, 10))        
+IO.puts(NewShippingCalculator.calculate_shipping("Furniture", :international, 10))   
+IO.puts(NewShippingCalculator.calculate_shipping("Toys", :domestic, 10))           
+```
+
+Now we have removed nesting from the previous code and made it much more cleaner to handle
